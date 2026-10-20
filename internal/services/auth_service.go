@@ -1,22 +1,18 @@
 package services
 
 import (
-	"errors"
 	"fmt"
+	"net/mail"
 	"os"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"Go-Auth-API/internal/dtos"
-	"Go-Auth-API/internal/repositories"
+	"Go-Auth-API/internal/utils"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
-)
-
-var (
-	ErrInvalidCredentials = errors.New("invalid email or password")
-	ErrAuthConfig         = errors.New("authentication configuration error")
 )
 
 type AuthServiceInterface interface {
@@ -24,38 +20,39 @@ type AuthServiceInterface interface {
 }
 
 type AuthService struct {
-	userRepo repositories.UserRepositoryInterface
+	userService UserServiceInterface
 }
 
-func NewAuthService(userRepo repositories.UserRepositoryInterface) AuthServiceInterface {
+func NewAuthService(userService UserServiceInterface) AuthServiceInterface {
 	return &AuthService{
-		userRepo: userRepo,
+		userService: userService,
 	}
 }
 
 func (as *AuthService) Login(req dtos.LoginFormDTO) (string, error) {
-	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-
-	if req.Email == "" || req.Password == "" {
-		return "", ErrInvalidCredentials
-	}
-
-	user, err := as.userRepo.FindByEmail(req.Email)
-	if err != nil {
+	if err := validateLoginForm(&req); err != nil {
 		return "", err
 	}
 
-	if user == nil {
-		return "", ErrInvalidCredentials
+	user, err := as.userService.FindByEmail(req.Email)
+	if err != nil {
+		return "", fmt.Errorf("find user by email: %w", err)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash),[]byte(req.Password)); err != nil {
-		return "", ErrInvalidCredentials
+	if user == nil {
+		return "", utils.NewUnauthorizedError("Invalid email or password")
+	}
+
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(req.Password),
+	); err != nil {
+		return "", utils.NewUnauthorizedError("Invalid email or password")
 	}
 
 	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		return "", ErrAuthConfig
+	if strings.TrimSpace(secret) == "" {
+		return "", fmt.Errorf("JWT_SECRET is not configured")
 	}
 
 	now := time.Now()
@@ -70,8 +67,47 @@ func (as *AuthService) Login(req dtos.LoginFormDTO) (string, error) {
 
 	signedToken, err := token.SignedString([]byte(secret))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("sign JWT: %w", err)
 	}
 
 	return signedToken, nil
+}
+
+func validateLoginForm(dto *dtos.LoginFormDTO) error {
+	dto.Email = strings.ToLower(strings.TrimSpace(dto.Email))
+
+	if dto.Email == "" {
+		return utils.NewValidationError(
+			"Email is required",
+			"INVALID_INPUT",
+			"email",
+		)
+	}
+
+	email, err := mail.ParseAddress(dto.Email)
+	if err != nil || email.Address != dto.Email {
+		return utils.NewValidationError(
+			"Invalid email address",
+			"INVALID_INPUT",
+			"email",
+		)
+	}
+
+	if dto.Password == "" {
+		return utils.NewValidationError(
+			"Password is required",
+			"INVALID_INPUT",
+			"password",
+		)
+	}
+
+	if utf8.RuneCountInString(dto.Password) > 72 {
+		return utils.NewValidationError(
+			"Invalid email or password",
+			"INVALID_INPUT",
+			"password",
+		)
+	}
+
+	return nil
 }

@@ -60,7 +60,8 @@ func (uc *UserController) Register(c *gin.Context) {
 		return
 	}
 
-	utils.Response(c, http.StatusCreated, "User registered successfully",
-		gin.H{"id": ID},
-	)
+	c.JSON(http.StatusOK, gin.H{
+		"message":"User created successfully",
+		"ID":ID,
+	})
 }

@@ -1,8 +1,6 @@
-
 package services
 
 import (
-	"errors"
 	"net/mail"
 	"strings"
 	"unicode/utf8"
@@ -17,6 +15,7 @@ import (
 
 type UserServiceInterface interface {
 	Register(req dtos.UserFormDTO) (uint, error)
+	FindByEmail(email string) (*models.User, error)
 }
 
 type UserService struct {
@@ -31,14 +30,10 @@ func NewUserService(repo repositories.UserRepositoryInterface) UserServiceInterf
 
 func (us *UserService) Register(req dtos.UserFormDTO) (uint, error) {
 	if err := validateUserForm(&req); err != nil {
-		return 0, utils.NewValidationError(
-			err.Error(),
-			"invalid_input",
-			"registration",
-		)
+		return 0, err
 	}
 
-	existingUser, err := us.repo.FindByEmail(req.Email)
+	existingUser, err := us.FindByEmail(req.Email)
 	if err != nil {
 		return 0, err
 	}
@@ -69,42 +64,81 @@ func (us *UserService) Register(req dtos.UserFormDTO) (uint, error) {
 	return user.ID, nil
 }
 
+func (us *UserService) FindByEmail(email string) (*models.User, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	return us.repo.FindByEmail(email)
+}
+
+
 func validateUserForm(dto *dtos.UserFormDTO) error {
 	dto.Username = strings.TrimSpace(dto.Username)
 	dto.Email = strings.ToLower(strings.TrimSpace(dto.Email))
 	dto.PhoneNumber = strings.TrimSpace(dto.PhoneNumber)
 
 	if dto.Username == "" {
-		return errors.New("username is required")
+		return utils.NewValidationError(
+			"Username is required",
+			"INVALID_INPUT",
+			"username",
+		)
 	}
 
 	if utf8.RuneCountInString(dto.Username) < 3 {
-		return errors.New("username must be at least 3 characters")
+		return utils.NewValidationError(
+			"Username must be at least 3 characters",
+			"INVALID_INPUT",
+			"username",
+		)
 	}
 
 	if dto.Email == "" {
-		return errors.New("email is required")
+		return utils.NewValidationError(
+			"Email is required",
+			"INVALID_INPUT",
+			"email",
+		)
 	}
 
 	email, err := mail.ParseAddress(dto.Email)
 	if err != nil || email.Address != dto.Email {
-		return errors.New("invalid email address")
+		return utils.NewValidationError(
+			"Invalid email address",
+			"INVALID_INPUT",
+			"email",
+		)
 	}
 
 	if dto.PhoneNumber == "" {
-		return errors.New("phone number is required")
+		return utils.NewValidationError(
+			"Phone number is required",
+			"INVALID_INPUT",
+			"phone_number",
+		)
 	}
 
 	if utf8.RuneCountInString(dto.PhoneNumber) > 20 {
-		return errors.New("phone number must not exceed 20 characters")
+		return utils.NewValidationError(
+			"Phone number must not exceed 20 characters",
+			"INVALID_INPUT",
+			"phone_number",
+		)
 	}
 
 	if dto.Password == "" {
-		return errors.New("password is required")
+		return utils.NewValidationError(
+			"Password is required",
+			"INVALID_INPUT",
+			"password",
+		)
 	}
 
 	if utf8.RuneCountInString(dto.Password) < 8 {
-		return errors.New("password must be at least 8 characters")
+		return utils.NewValidationError(
+			"Password must be at least 8 characters",
+			"INVALID_INPUT",
+			"password",
+		)
 	}
 
 	return nil

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"database/sql"
+	// "database/sql"
 	"log"
 	"os"
 
@@ -9,7 +9,7 @@ import (
 	"Go-Auth-API/internal/initializer"
 
 	"github.com/joho/godotenv"
-	"github.com/pressly/goose/v3"
+	// "github.com/pressly/goose/v3"
 )
 
 func main() {
@@ -31,10 +31,10 @@ func main() {
 	}
 	defer sqlDB.Close()
 
-	// 4. Run pending Goose migrations
-	if err := runMigrations(sqlDB); err != nil {
-		log.Fatal("Database migration failed:", err)
-	}
+	// // 4. Run pending Goose migrations
+	// if err := runMigrations(sqlDB); err != nil {
+	// 	log.Fatal("Database migration failed:", err)
+	// }
 
 	// 5. Initialize the application and register routes
 	router := initializer.InitializeApp(db)
@@ -53,10 +53,10 @@ func main() {
 	}
 }
 
-func runMigrations(db *sql.DB) error {
-	if err := goose.SetDialect("postgres"); err != nil {
-		return err
-	}
+// func runMigrations(db *sql.DB) error {
+// 	if err := goose.SetDialect("postgres"); err != nil {
+// 		return err
+// 	}
 
-	return goose.Up(db, "migrations")
-}
+// 	return goose.Up(db, "migrations")
+// }
