@@ -7,6 +7,8 @@
 !.env.example
 !.env.sample
 
+migrate.bat
+
 # Certificates and private keys
 *.pem
 *.key

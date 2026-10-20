@@ -1,23 +1,22 @@
+
 package services
 
 import (
 	"errors"
+	"net/mail"
 	"strings"
+	"unicode/utf8"
 
 	"Go-Auth-API/internal/dtos"
 	"Go-Auth-API/internal/models"
 	"Go-Auth-API/internal/repositories"
+	"Go-Auth-API/internal/utils"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	ErrEmailAlreadyExists = errors.New("email already registered")
-	ErrInvalidInput       = errors.New("invalid registration input")
-)
-
 type UserServiceInterface interface {
-	Register(req dtos.UserFormDTO) (*models.User, error)
+	Register(req dtos.UserFormDTO) (uint, error)
 }
 
 type UserService struct {
@@ -30,21 +29,22 @@ func NewUserService(repo repositories.UserRepositoryInterface) UserServiceInterf
 	}
 }
 
-func (us *UserService) Register(req dtos.UserFormDTO) (*models.User, error) {
-	req.Username = strings.TrimSpace(req.Username)
-	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-
-	if req.Username == "" || req.Email == "" || len(req.Password) < 8 {
-		return nil, ErrInvalidInput
+func (us *UserService) Register(req dtos.UserFormDTO) (uint, error) {
+	if err := validateUserForm(&req); err != nil {
+		return 0, utils.NewValidationError(
+			err.Error(),
+			"invalid_input",
+			"registration",
+		)
 	}
 
 	existingUser, err := us.repo.FindByEmail(req.Email)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	if existingUser != nil {
-		return nil, ErrEmailAlreadyExists
+		return 0, utils.NewConflictError("Email already registered")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword(
@@ -52,18 +52,60 @@ func (us *UserService) Register(req dtos.UserFormDTO) (*models.User, error) {
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	user := &models.User{
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
+		PhoneNumber:  req.PhoneNumber,
 	}
 
 	if err := us.repo.Create(user); err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return user, nil
+	return user.ID, nil
+}
+
+func validateUserForm(dto *dtos.UserFormDTO) error {
+	dto.Username = strings.TrimSpace(dto.Username)
+	dto.Email = strings.ToLower(strings.TrimSpace(dto.Email))
+	dto.PhoneNumber = strings.TrimSpace(dto.PhoneNumber)
+
+	if dto.Username == "" {
+		return errors.New("username is required")
+	}
+
+	if utf8.RuneCountInString(dto.Username) < 3 {
+		return errors.New("username must be at least 3 characters")
+	}
+
+	if dto.Email == "" {
+		return errors.New("email is required")
+	}
+
+	email, err := mail.ParseAddress(dto.Email)
+	if err != nil || email.Address != dto.Email {
+		return errors.New("invalid email address")
+	}
+
+	if dto.PhoneNumber == "" {
+		return errors.New("phone number is required")
+	}
+
+	if utf8.RuneCountInString(dto.PhoneNumber) > 20 {
+		return errors.New("phone number must not exceed 20 characters")
+	}
+
+	if dto.Password == "" {
+		return errors.New("password is required")
+	}
+
+	if utf8.RuneCountInString(dto.Password) < 8 {
+		return errors.New("password must be at least 8 characters")
+	}
+
+	return nil
 }
