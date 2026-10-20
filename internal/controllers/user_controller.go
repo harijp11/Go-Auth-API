@@ -1,12 +1,11 @@
-
 package controllers
 
 import (
-	"errors"
 	"net/http"
 
 	"Go-Auth-API/internal/dtos"
 	"Go-Auth-API/internal/services"
+	"Go-Auth-API/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,38 +26,41 @@ func (uc *UserController) Register(c *gin.Context) {
 	var req dtos.UserFormDTO
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
-		})
+		validationErr := utils.NewValidationError(
+			"Invalid request body",
+			"INVALID_REQUEST",
+			"request",
+		)
+
+		utils.SendInvalidErrResp(c, validationErr)
 		return
 	}
 
-	user, err := uc.userService.Register(req)
+	ID, err := uc.userService.Register(req)
 	if err != nil {
-		switch {
-		case errors.Is(err, services.ErrInvalidInput):
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-		case errors.Is(err, services.ErrEmailAlreadyExists):
-			c.JSON(http.StatusConflict, gin.H{
-				"error": err.Error(),
-			})
+		switch e := err.(type) {
+		case *utils.ValidationError:
+			utils.SendInvalidErrResp(c, e)
+
+		case *utils.ConflictError:
+			utils.SendConflictErrResp(c, e)
+
+		case *utils.ResourceNotFoundError:
+			utils.SendNotFoundErrResp(c, e)
+
+		case *utils.UnauthorizedError:
+			utils.SendUnauthorizedErrResp(c, e)
+
+		case *utils.ForbiddenError:
+			utils.SendForbiddenErrResp(c, e)
+
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Registration failed",
-			})
+			utils.SendInternalErrResp(c)
 		}
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "User registered successfully",
-		"user": gin.H{
-			"id":         user.ID,
-			"username":   user.Username,
-			"email":      user.Email,
-			"created_at": user.CreatedAt,
-		},
-	})
+	utils.Response(c, http.StatusCreated, "User registered successfully",
+		gin.H{"id": ID},
+	)
 }

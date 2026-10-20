@@ -1,15 +1,15 @@
-
 package main
 
 import (
+	"database/sql"
 	"log"
 	"os"
 
 	"Go-Auth-API/config"
 	"Go-Auth-API/internal/initializer"
-	"Go-Auth-API/internal/models"
 
 	"github.com/joho/godotenv"
+	"github.com/pressly/goose/v3"
 )
 
 func main() {
@@ -24,15 +24,15 @@ func main() {
 		log.Fatal("Database connection failed:", err)
 	}
 
-	// 3. Close database connection when the application exits
+	// 3. Close the database connection on exit
 	sqlDB, err := db.DB()
 	if err != nil {
 		log.Fatal("Failed to get database connection:", err)
 	}
 	defer sqlDB.Close()
 
-	// 4. Run database migrations
-	if err := db.AutoMigrate(&models.User{}); err != nil {
+	// 4. Run pending Goose migrations
+	if err := runMigrations(sqlDB); err != nil {
 		log.Fatal("Database migration failed:", err)
 	}
 
@@ -51,4 +51,12 @@ func main() {
 	if err := router.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
+}
+
+func runMigrations(db *sql.DB) error {
+	if err := goose.SetDialect("postgres"); err != nil {
+		return err
+	}
+
+	return goose.Up(db, "migrations")
 }

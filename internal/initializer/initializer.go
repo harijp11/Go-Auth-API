@@ -22,12 +22,16 @@ func InitializeApp(db *gorm.DB) *gin.Engine {
 
 	// Initialize service
 	userService := services.NewUserService(userRepository)
+	authService := services.NewAuthService(userRepository)
 
 	// Initialize controller
 	userController := controllers.NewUserController(userService)
+		authController := controllers.NewAuthController(authService)
+
 
 	// Register user routes
 	routes.UserRoutes(api, userController)
+	routes.AuthRoutes(api, authController)
 
 	return router
 }
