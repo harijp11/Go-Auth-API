@@ -1,0 +1,108 @@
+
+# ==============================
+# Environment variables & secrets
+# ==============================
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Certificates and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cert
+
+# ==============================
+# Go build outputs
+# ==============================
+/bin/
+/build/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Compiled Go binaries
+/Go-Auth-API
+/main
+
+# ==============================
+# Go workspace & local files
+# ==============================
+go.work
+go.work.sum
+
+# Keep go.mod and go.sum tracked
+# Do not ignore these files
+
+# ==============================
+# Logs
+# ==============================
+*.log
+logs/
+tmp/
+temp/
+
+# ==============================
+# Database files & local backups
+# ==============================
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.bak
+*.backup
+
+# Local database volume data
+postgres-data/
+data/
+
+# ==============================
+# IDE & editor settings
+# ==============================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ==============================
+# Operating system files
+# ==============================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==============================
+# Test artifacts
+# ==============================
+coverage/
+test-results/
+junit.xml
+
+# ==============================
+# Docker local overrides
+# ==============================
+docker-compose.override.yml
+
+# ==============================
+# Generated documentation
+# ==============================
+/docs/generated/
+
+# ==============================
+# Temporary files
+# ==============================
+*.tmp
+*.temp
+*.orig
+*.rej
