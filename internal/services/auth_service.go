@@ -3,15 +3,12 @@ package services
 import (
 	"fmt"
 	"net/mail"
-	"os"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"Go-Auth-API/internal/dtos"
 	"Go-Auth-API/internal/utils"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,11 +18,13 @@ type AuthServiceInterface interface {
 
 type AuthService struct {
 	userService UserServiceInterface
+	jwtService  JWTServiceInterface
 }
 
-func NewAuthService(userService UserServiceInterface) AuthServiceInterface {
+func NewAuthService(userService UserServiceInterface, jwtService  JWTServiceInterface,) AuthServiceInterface {
 	return &AuthService{
 		userService: userService,
+		jwtService : jwtService,
 	}
 }
 
@@ -50,27 +49,12 @@ func (as *AuthService) Login(req dtos.LoginFormDTO) (string, error) {
 		return "", utils.NewUnauthorizedError("Invalid email or password")
 	}
 
-	secret := os.Getenv("JWT_SECRET")
-	if strings.TrimSpace(secret) == "" {
-		return "", fmt.Errorf("JWT_SECRET is not configured")
-	}
-
-	now := time.Now()
-
-	claims := jwt.RegisteredClaims{
-		Subject:   fmt.Sprint(user.ID),
-		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	signedToken, err := token.SignedString([]byte(secret))
+	token, err := as.jwtService.GenerateAccessToken(user.ID)
 	if err != nil {
-		return "", fmt.Errorf("sign JWT: %w", err)
+		return "", fmt.Errorf("generate access token: %w", err)
 	}
 
-	return signedToken, nil
+	return token, nil
 }
 
 func validateLoginForm(dto *dtos.LoginFormDTO) error {

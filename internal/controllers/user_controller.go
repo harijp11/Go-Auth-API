@@ -22,6 +22,41 @@ func NewUserController(
 	}
 }
 
+func (uc *UserController) FindUserDetailsByID(c *gin.Context) {
+
+	userID, err := utils.GetCurrentUserID(c)
+	if err != nil {
+		utils.SendUnauthorizedErrResp(c, err.(*utils.UnauthorizedError))
+		return
+	}
+
+	user, err := uc.userService.FindDetailsByID(uint(userID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utils.ValidationError:
+			utils.SendInvalidErrResp(c, e)
+
+		case *utils.ResourceNotFoundError:
+			utils.SendNotFoundErrResp(c, e)
+
+		case *utils.UnauthorizedError:
+			utils.SendUnauthorizedErrResp(c, e)
+
+		case *utils.ForbiddenError:
+			utils.SendForbiddenErrResp(c, e)
+
+		default:
+			utils.SendInternalErrResp(c)
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User details fetched successfully",
+		"user":    user,
+	})
+}
+
 func (uc *UserController) Register(c *gin.Context) {
 	var req dtos.UserFormDTO
 
@@ -61,7 +96,7 @@ func (uc *UserController) Register(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":"User created successfully",
-		"ID":ID,
+		"message": "User created successfully",
+		"ID":      ID,
 	})
 }

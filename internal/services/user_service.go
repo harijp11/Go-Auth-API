@@ -10,12 +10,15 @@ import (
 	"Go-Auth-API/internal/repositories"
 	"Go-Auth-API/internal/utils"
 
+	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserServiceInterface interface {
-	Register(req dtos.UserFormDTO) (uint, error)
+	FindDetailsByID(id uint) (*dtos.UserDTO, error)
+	FindByID(id uint) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
+	Register(req dtos.UserFormDTO) (uint, error)
 }
 
 type UserService struct {
@@ -26,6 +29,31 @@ func NewUserService(repo repositories.UserRepositoryInterface) UserServiceInterf
 	return &UserService{
 		repo: repo,
 	}
+}
+
+func (us *UserService) FindDetailsByID(id uint) (*dtos.UserDTO, error) {
+	var userDetails dtos.UserDTO
+
+	user, err := us.repo.FindDetailsByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := mapstructure.Decode(user, &userDetails); err != nil {
+		return nil, err
+	}
+
+	return &userDetails, nil
+}
+
+func (us *UserService) FindByID(id uint) (*models.User, error) {
+	return us.repo.FindByID(id)
+}
+
+func (us *UserService) FindByEmail(email string) (*models.User, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	return us.repo.FindByEmail(email)
 }
 
 func (us *UserService) Register(req dtos.UserFormDTO) (uint, error) {
@@ -63,13 +91,6 @@ func (us *UserService) Register(req dtos.UserFormDTO) (uint, error) {
 
 	return user.ID, nil
 }
-
-func (us *UserService) FindByEmail(email string) (*models.User, error) {
-	email = strings.ToLower(strings.TrimSpace(email))
-
-	return us.repo.FindByEmail(email)
-}
-
 
 func validateUserForm(dto *dtos.UserFormDTO) error {
 	dto.Username = strings.TrimSpace(dto.Username)

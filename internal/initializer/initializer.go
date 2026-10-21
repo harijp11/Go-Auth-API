@@ -1,7 +1,7 @@
-
 package initializer
 
 import (
+	"Go-Auth-API/config"
 	"Go-Auth-API/internal/controllers"
 	"Go-Auth-API/internal/repositories"
 	"Go-Auth-API/internal/routes"
@@ -22,11 +22,12 @@ func InitializeApp(db *gorm.DB) *gin.Engine {
 
 	// Initialize service
 	userService := services.NewUserService(userRepository)
-	authService := services.NewAuthService(userRepository)
+	jwtService  := services.NewJWTService(&config.JWTConfig{})
+	authService := services.NewAuthService(userService,jwtService)
 
 	// Initialize controller
 	userController := controllers.NewUserController(userService)
-		authController := controllers.NewAuthController(authService)
+	authController := controllers.NewAuthController(authService)
 
 
 	// Register user routes

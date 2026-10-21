@@ -9,6 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -21,33 +22,31 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
-
-		if len(parts) != 2 || parts[0] != "Bearer" || parts[1] == "" {
+		if len(parts) != 2 ||
+			!strings.EqualFold(parts[0], "Bearer") ||
+			strings.TrimSpace(parts[1]) == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "Invalid authorization header format",
 			})
 			return
 		}
 
-		tokenString := parts[1]
 		secret := os.Getenv("JWT_SECRET")
-
-		if secret == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+		if strings.TrimSpace(secret) == "" {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"error": "Authentication configuration error",
 			})
 			return
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.Parse(parts[1], func(token *jwt.Token) (interface{}, error) {
 			if token.Method != jwt.SigningMethodHS256 {
 				return nil, jwt.ErrSignatureInvalid
 			}
-
 			return []byte(secret), nil
 		})
 
-		if err != nil || !token.Valid {
+		if err != nil || token == nil || !token.Valid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "Invalid or expired token",
 			})
@@ -62,7 +61,15 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("userID", claims["sub"])
+		id, ok := claims["id"].(float64)
+		if !ok || id <= 0 || id != float64(uint(id)) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid user ID in token",
+			})
+			return
+		}
+
+		c.Set("userID", uint(id))
 		c.Next()
 	}
 }

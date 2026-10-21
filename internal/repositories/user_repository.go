@@ -1,16 +1,18 @@
-
 package repositories
 
 import (
 	"errors"
 
 	"Go-Auth-API/internal/models"
+
 	"gorm.io/gorm"
 )
 
 type UserRepositoryInterface interface {
-	Create(user *models.User) error
+	FindDetailsByID(id uint) (*models.User, error)
+	FindByID(id uint) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
+	Create(user *models.User) error
 }
 
 type UserRepository struct {
@@ -21,14 +23,23 @@ func NewUserRepository(db *gorm.DB) UserRepositoryInterface {
 	return &UserRepository{db: db}
 }
 
-func (ur *UserRepository) Create(user *models.User) error {
-	return ur.db.Create(user).Error
+func (repo *UserRepository) FindDetailsByID(id uint) (*models.User, error) {
+	var user models.User
+	err := repo.db.First(&user, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
-func (ur *UserRepository) FindByEmail(email string) (*models.User, error) {
+func (repo *UserRepository) FindByID(id uint) (*models.User, error) {
 	var user models.User
 
-	err := ur.db.Where("email = ?", email).First(&user).Error
+	err := repo.db.First(&user, id).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -38,4 +49,24 @@ func (ur *UserRepository) FindByEmail(email string) (*models.User, error) {
 	}
 
 	return &user, nil
+
+}
+
+func (repo *UserRepository) FindByEmail(email string) (*models.User, error) {
+	var user models.User
+
+	err := repo.db.Where("email = ?", email).First(&user).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (repo *UserRepository) Create(user *models.User) error {
+	return repo.db.Create(user).Error
 }

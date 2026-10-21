@@ -8,6 +8,5 @@ import (
 
 func UserRoutes(userRouter *gin.RouterGroup, userController *controllers.UserController) {
 	userRouter.POST("/users/register",middleware.AuthMiddleware(), userController.Register)
-	userRouter.GET("/users/profile",middleware.AuthMiddleware(),// userController.Profile,
-)
+	userRouter.GET("/users/profile",middleware.AuthMiddleware(), userController.FindUserDetailsByID)
 }
