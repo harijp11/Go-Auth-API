@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func InitializeApp(db *gorm.DB) *gin.Engine {
+func InitializeApp(db *gorm.DB,jwtConfig *config.JWTConfig) *gin.Engine {
 	router := gin.Default()
 
 	// API version group
@@ -21,8 +21,8 @@ func InitializeApp(db *gorm.DB) *gin.Engine {
 	userRepository := repositories.NewUserRepository(db)
 
 	// Initialize service
+	jwtService := services.NewJWTService(jwtConfig)
 	userService := services.NewUserService(userRepository)
-	jwtService  := services.NewJWTService(&config.JWTConfig{})
 	authService := services.NewAuthService(userService,jwtService)
 
 	// Initialize controller

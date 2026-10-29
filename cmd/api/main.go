@@ -24,6 +24,13 @@ func main() {
 		log.Fatal("Database connection failed:", err)
 	}
 
+	//2.5
+	jwtConfig, err := config.LoadJWTConfig()
+	if err != nil {
+		log.Fatal("JWT configuration error:", err)
+	}
+
+
 	// 3. Close the database connection on exit
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -37,7 +44,7 @@ func main() {
 	// }
 
 	// 5. Initialize the application and register routes
-	router := initializer.InitializeApp(db)
+	router := initializer.InitializeApp(db,jwtConfig)
 
 	// 6. Get the server port
 	port := os.Getenv("PORT")
