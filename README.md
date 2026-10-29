@@ -149,7 +149,13 @@ go test ./...
 
 - GitHub: [@harijp11](https://github.com/harijp11)
 
-
 ---
+
+## Local Development
+
+1. Clone the repository.
+2. Configure the required environment variables.
+3. Run database migrations.
+4. Start the API using `go run ./cmd/api`.
 
 *Built as a Go backend project to explore authentication, API development, and backend architecture.*
