@@ -24,6 +24,7 @@ func main() {
 		log.Fatal("Database connection failed:", err)
 	}
 
+	
 	//2.5
 	jwtConfig, err := config.LoadJWTConfig()
 	if err != nil {
