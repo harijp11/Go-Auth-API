@@ -153,6 +153,7 @@ go test ./...
 
 ## Local Development
 
+
 1. Clone the repository.
 2. Configure the required environment variables.
 3. Run database migrations.
