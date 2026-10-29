@@ -149,6 +149,7 @@ go test ./...
 
 - GitHub: [@harijp11](https://github.com/harijp11)
 
+
 ---
 
 *Built as a Go backend project to explore authentication, API development, and backend architecture.*
